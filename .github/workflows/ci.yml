@@ -22,7 +22,7 @@ jobs:
         cache: maven
 
     - name: Compilation et Tests Unitaires
-      run: ./mvnw clean verify
+      run: mvn clean verify
 
     - name: Sauvegarde de l'artefact (Fichier JAR)
       uses: actions/upload-artifact@v4
