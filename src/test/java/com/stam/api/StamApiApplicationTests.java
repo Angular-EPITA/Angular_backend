@@ -2,12 +2,10 @@ package com.stam.api;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
-// Exclure DataSourceAutoConfiguration et HibernateJpaAutoConfiguration
-// pour éviter les problèmes de configuration manquante de base de données lors des tests
-@SpringBootTest(properties = {
-    "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration"
-})
+@SpringBootTest
+@ActiveProfiles("test") // On active le profil "test" pour utiliser application-test.yml
 class StamApiApplicationTests {
 
     @Test
