@@ -7,9 +7,12 @@ on:
     branches: [ "main", "develop" ]
 
 jobs:
-  build-and-test:
+  ci-stam-api:
     runs-on: ubuntu-24.04
-
+    permissions:
+      contents: read
+      packages: write
+      
     steps:
     - name: Checkout du code source
       uses: actions/checkout@v4
@@ -39,3 +42,22 @@ jobs:
         name: coverage-report
         path: target/site/jacoco/
         retention-days: 7
+
+    - name: Login to GitHub Container Registry (GHCR)
+      uses: docker/login-action@v3
+      # On ne pousse l'image que si on est sur main ou develop
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+      with:
+        context: .
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}:latest
+          ghcr.io/${{ github.repository }}:${{ github.sha }}
