@@ -1,19 +1,33 @@
-# Angular_backend
+# stam-api
 
-Pour lancer le projet:
+docker compose down -v
+docker compose up -d
 
-# 1. Docker
+- API: http://localhost:8080
+- Swagger: http://localhost:8080/swagger-ui/index.html
+- Kafka UI: http://localhost:8090
 
-`docker compose up -d`
+## Lancer l'API en local
 
-pour bien fermer et relancer docker:
-`docker compose down -v`
+Prérequis: démarrer Postgres + Kafka
 
-# 2. Maven
+./mvnw -DskipTests package
+docker compose up -d
 
-`.\mvnw clean spring-boot:run`
+### Dev
+
+Le profil `dev` est le profil par défaut, donc:
+
+./mvnw spring-boot:run
 
 
-# 3. Go to the SWAGGER
+### Prod
 
-http://localhost:8080/swagger-ui/index.html
+Le profil `prod` attend des variables d'environnement (datasource + kafka):
+
+SPRING_PROFILES_ACTIVE=prod \
+SPRING_DATASOURCE_URL='jdbc:postgresql://localhost:5432/stam_db' \
+SPRING_DATASOURCE_USERNAME='stam_admin' \
+SPRING_DATASOURCE_PASSWORD='stam_password' \
+SPRING_KAFKA_BOOTSTRAP_SERVERS='localhost:29092' \
+./mvnw spring-boot:run
