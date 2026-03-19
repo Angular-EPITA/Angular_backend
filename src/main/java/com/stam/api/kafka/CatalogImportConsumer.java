@@ -14,8 +14,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Consomme le topic d'import catalogue et insère les jeux en base en arrière-plan.
- *
- * Format attendu: JSON compatible avec {@link GameRequestDTO}.
  */
 @Slf4j
 @Component
@@ -24,7 +22,6 @@ public class CatalogImportConsumer {
 
     private final GameService gameService;
 
-    // Version "étudiant": pas de config Spring, on garde un mapper simple.
     private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
     @KafkaListener(
