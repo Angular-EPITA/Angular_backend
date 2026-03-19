@@ -7,42 +7,27 @@ docker compose up -d
 - Swagger: http://localhost:8080/swagger-ui/index.html
 - Kafka UI: http://localhost:8090
 
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+## Lancer l'API en local
 
-communication via un topic Kafka pour importer des jeux en asynchrone.
+Prérequis: démarrer Postgres + Kafka
 
-### Topic
+./mvnw -DskipTests package
+docker compose up -d
 
-- Topic d'import catalogue: `stam.catalog.import`
+### Dev
 
-Le producer publie des messages JSON sur ce topic, et le consumer les consomme pour insérer en base.
+Le profil `dev` est le profil par défaut, donc:
 
-
-Le producer est la partie qui envoie un message dans Kafka.
-prend un jeu (un `GameRequestDTO`), le transforme en JSON, puis l'envoie sur le topic `stam.catalog.import`.
-le producer dépose des messages, sans se soucier de quand ils seront traités.
+./mvnw spring-boot:run
 
 
-Le consumer est la partie qui reçoit les messages depuis Kafka.
-écoute le topic `stam.catalog.import`, lit le JSON, le reconvertit en `GameRequestDTO`, puis appelle le service (`gameService.createGame`) pour créer le jeu en base de données.
-L'intérêt principal est de traiter l'import en arrière-plan (asynchrone).
+### Prod
 
-### Schéma (simplifié)
+Le profil `prod` attend des variables d'environnement (datasource + kafka):
 
-Producteur (partenaire)  --->  Kafka topic stam.catalog.import  --->  stam-api (consumer)  --->  Postgres
-
-### Exemple de message
-
-{
-	"title": "Stam Racer 2026",
-	"description": "Un jeu de course arcade.",
-	"releaseDate": "2026-03-01",
-	"price": 39.99,
-	"imageUrl": "https://cdn.example.com/images/stam-racer-2026.jpg",
-	"genreId": 1
-}
-
-
- Ouvrir Kafka UI (http://localhost:8090)
- Publier un message sur le topic `stam.catalog.import`
- Vérifier l'insertion via l'API: `GET /api/games`
+SPRING_PROFILES_ACTIVE=prod \
+SPRING_DATASOURCE_URL='jdbc:postgresql://localhost:5432/stam_db' \
+SPRING_DATASOURCE_USERNAME='stam_admin' \
+SPRING_DATASOURCE_PASSWORD='stam_password' \
+SPRING_KAFKA_BOOTSTRAP_SERVERS='localhost:29092' \
+./mvnw spring-boot:run
