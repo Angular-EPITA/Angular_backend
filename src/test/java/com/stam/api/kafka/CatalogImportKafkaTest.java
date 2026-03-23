@@ -3,9 +3,16 @@ package com.stam.api.kafka;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stam.api.dto.GameRequestDTO;
 import com.stam.api.repository.GameRepository;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +30,10 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
+
+import java.time.Instant;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
@@ -44,6 +55,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class CatalogImportKafkaTest {
 
     static final String TOPIC = "stam.catalog.import.it";
+    static final String DLT_TOPIC = TOPIC + ".dlt";
     static final String GROUP_ID = "stam-it";
 
     @Container
@@ -84,15 +96,13 @@ class CatalogImportKafkaTest {
         dto.setImageUrl("https://example.com/kafka.png");
         dto.setGenreId(1L);
 
-        String responseBody = mockMvc.perform(post("/api/games/import-async")
+        String partnerId = "partner-it";
+
+        mockMvc.perform(post("/api/partners/" + partnerId + "/catalog/import-async")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(List.of(dto))))
             .andExpect(status().isAccepted())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-
-        assertThat(responseBody).contains("1 jeu(x) envoyé(s) dans la file d'attente Kafka pour import.");
+            .andReturn();
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(20))
@@ -104,13 +114,52 @@ class CatalogImportKafkaTest {
                 });
     }
 
+    @Test
+    void invalidKafkaMessage_isSentToDlt() throws Exception {
+        ensureTopicExists();
+
+        // envoie un message volontairement invalide (pas du JSON)
+        Properties producerProps = new Properties();
+        producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers());
+        producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+
+        try (KafkaProducer<String, String> producer = new KafkaProducer<>(producerProps)) {
+            producer.send(new ProducerRecord<>(TOPIC, "bad-" + Instant.now().toEpochMilli(), "not-json"));
+            producer.flush();
+        }
+
+        Properties consumerProps = new Properties();
+        consumerProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers());
+        consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, "dlt-it-" + UUID.randomUUID());
+        consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+
+        try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(consumerProps)) {
+            consumer.subscribe(List.of(DLT_TOPIC));
+
+            Awaitility.await()
+                    .atMost(Duration.ofSeconds(20))
+                    .pollInterval(Duration.ofMillis(250))
+                    .untilAsserted(() -> {
+                        ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(500));
+                        assertThat(records.count()).isGreaterThan(0);
+                        ConsumerRecord<String, String> record = records.iterator().next();
+                        assertThat(record.value()).isEqualTo("not-json");
+                    });
+        }
+    }
+
     private void ensureTopicExists() throws Exception {
         Properties props = new Properties();
         props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers());
 
         try (AdminClient admin = AdminClient.create(props)) {
             try {
-                admin.createTopics(List.of(new NewTopic(TOPIC, 1, (short) 1))).all().get(10, TimeUnit.SECONDS);
+                admin.createTopics(List.of(
+                        new NewTopic(TOPIC, 1, (short) 1)
+                )).all().get(10, TimeUnit.SECONDS);
             } catch (Exception ignored) {
                 // topic already exists or auto-created
             }

@@ -1,5 +1,4 @@
 package com.stam.api.controller;
-import com.stam.api.kafka.CatalogImportProducer;
 import com.stam.api.dto.GameRequestDTO;
 import com.stam.api.entity.Game;
 import com.stam.api.repository.GameRepository;
@@ -29,9 +28,6 @@ public class GameController {
 
     @Autowired
     private GameService gameService;
-
-    @Autowired
-    private CatalogImportProducer catalogImportProducer;
 
     @Operation(summary = "Lister les nouveautés", description = "Renvoie les 10 derniers jeux ajoutés au catalogue.")
     @GetMapping("/latest")
@@ -97,13 +93,4 @@ public class GameController {
         return ResponseEntity.notFound().build();
     }
 
-    @Operation(summary = "Importer un lot de jeux (Asynchrone)", description = "Reçoit une liste de jeux et les envoie dans Kafka pour un traitement en arrière-plan sans bloquer l'utilisateur.")
-    @PostMapping("/import-async")
-    public ResponseEntity<String> importGamesAsync(@RequestBody List<GameRequestDTO> games) {
-        
-        // envoie liste au Producer Kafka
-        int count = catalogImportProducer.publishBatch(games);
-        
-        return ResponseEntity.accepted().body(count + " jeu(x) envoyé(s) dans la file d'attente Kafka pour import.");
-    }
 }
