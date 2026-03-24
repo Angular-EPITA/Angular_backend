@@ -4,6 +4,12 @@ spring:
     driver-class-name: org.h2.Driver
     username: sa
     password:
+
+  sql:
+    init:
+      mode: always
+      continue-on-error: false
+      classpath: data-test.sql
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     properties:

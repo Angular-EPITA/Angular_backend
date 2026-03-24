@@ -24,11 +24,6 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
-  sql:
-    init:
-      mode: always
-      continue-on-error: true
-
 stam:
   kafka:
     catalog-import-topic: partner.catalog.import
