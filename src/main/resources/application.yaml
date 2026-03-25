@@ -24,14 +24,20 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
-  sql:
-    init:
-      mode: always
-      continue-on-error: true
-
 stam:
   kafka:
-    catalog-import-topic: stam.catalog.import
+    catalog-import-topic: partner.catalog.import
 
 server:
   port: 8080
+
+management:
+  endpoints:
+    web:
+      base-path: /
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true

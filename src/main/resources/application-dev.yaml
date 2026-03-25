@@ -4,6 +4,12 @@ spring:
     username: stam_admin
     password: stam_password
 
+  sql:
+    init:
+      mode: always
+      continue-on-error: false
+      data-locations: classpath:data.sql
+
   jpa:
     show-sql: true
     properties:
