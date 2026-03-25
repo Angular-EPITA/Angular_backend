@@ -29,6 +29,9 @@ public class GameController {
     @Autowired
     private GameService gameService;
 
+    @Autowired
+    private CatalogImportProducer catalogImportProducer;
+
     @Operation(summary = "Lister les nouveautés", description = "Renvoie les 10 derniers jeux ajoutés au catalogue.")
     @GetMapping("/latest")
     public ResponseEntity<List<Game>> getLatestGames() {
