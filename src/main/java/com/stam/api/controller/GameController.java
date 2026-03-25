@@ -1,6 +1,7 @@
 package com.stam.api.controller;
 import com.stam.api.dto.GameRequestDTO;
 import com.stam.api.entity.Game;
+import com.stam.api.kafka.CatalogImportProducer;
 import com.stam.api.repository.GameRepository;
 import com.stam.api.service.GameService;
 import jakarta.validation.Valid;
