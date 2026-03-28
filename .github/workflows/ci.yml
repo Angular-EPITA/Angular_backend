@@ -13,7 +13,6 @@ jobs:
     permissions:
       contents: write
       packages: write
-    
     env:
       CI_REGISTRY_IMAGE: ghcr.io/angular-epita/stam-api
 
